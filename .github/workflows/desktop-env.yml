@@ -1,0 +1,105 @@
+name: Desktop Environment
+
+on:
+  workflow_dispatch:
+    inputs:
+      selected_os:
+        description: 'Target OS'
+        required: true
+        default: 'windows-latest'
+        type: choice
+        options:
+          - windows-latest
+          - windows-11
+          - ubuntu-latest
+          - debian-latest
+          - fedora-latest
+
+      username:
+        description: 'Username'
+        required: true
+        default: 'cloudadmin'
+
+      password:
+        description: 'Password'
+        required: true
+
+      ngrok_region:
+        description: 'Ngrok region'
+        required: true
+        default: 'ap'
+        type: choice
+        options: [us, eu, ap, au, sa, jp, in]
+
+      notify_to:
+        description: 'Notification channel'
+        required: true
+        default: 'None'
+        type: choice
+        options:
+          - 'None'
+          - 'Discord Webhook'
+          - 'Telegram Bot'
+
+      target_repo:
+        description: 'Repository URL (optional)'
+        required: false
+        default: ''
+
+      run_command:
+        description: 'Command to execute after setup (optional)'
+        required: false
+        default: ''
+
+jobs:
+  provision-windows:
+    name: Provision Windows
+    if: startsWith(github.event.inputs.selected_os, 'windows')
+    runs-on: windows-latest
+    timeout-minutes: 350
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Windows provisioning script
+        env:
+          OS_TYPE: ${{ github.event.inputs.selected_os }}
+          RDP_USER: ${{ github.event.inputs.username }}
+          RDP_PASS: ${{ github.event.inputs.password }}
+          NGROK_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
+          NGROK_REGION: ${{ github.event.inputs.ngrok_region }}
+          NOTIFY_TO: ${{ github.event.inputs.notify_to }}
+          TARGET_REPO: ${{ github.event.inputs.target_repo }}
+          RUN_COMMAND: ${{ github.event.inputs.run_command }}
+          MY_GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: powershell -ExecutionPolicy Bypass -File ./scripts/core-windows.ps1
+
+  provision-linux:
+    name: Provision Linux
+    if: startsWith(github.event.inputs.selected_os, 'ubuntu') || startsWith(github.event.inputs.selected_os, 'debian') || startsWith(github.event.inputs.selected_os, 'fedora')
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Linux provisioning script
+        env:
+          OS_TYPE: ${{ github.event.inputs.selected_os }}
+          RDP_USER: ${{ github.event.inputs.username }}
+          RDP_PASS: ${{ github.event.inputs.password }}
+          NGROK_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
+          NGROK_REGION: ${{ github.event.inputs.ngrok_region }}
+          NOTIFY_TO: ${{ github.event.inputs.notify_to }}
+          TARGET_REPO: ${{ github.event.inputs.target_repo }}
+          RUN_COMMAND: ${{ github.event.inputs.run_command }}
+          MY_GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          chmod +x ./scripts/core-linux.sh
+          ./scripts/core-linux.sh
